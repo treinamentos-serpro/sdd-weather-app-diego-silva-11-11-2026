@@ -47,11 +47,13 @@ export default function SearchBar({
           id={inputId}
           type="search"
           value={city}
+          required
           onChange={(event) => {
             setCity(event.target.value);
             setHasError(false);
           }}
           disabled={disabled}
+          aria-required="true"
           aria-invalid={hasError}
           aria-describedby={hasError ? `${privacyId} ${errorId}` : privacyId}
           className="min-w-0 flex-1 rounded-lg border border-white/20 bg-night-900/80 px-4 py-3 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 disabled:cursor-not-allowed disabled:opacity-60"

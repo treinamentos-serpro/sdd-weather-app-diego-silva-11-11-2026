@@ -11,8 +11,8 @@ describe('UnitToggle', () => {
     const onChange = vi.fn();
     const { rerender } = render(<UnitToggle unit="celsius" onChange={onChange} />);
     const group = screen.getByRole('group', { name: 'Unidade de temperatura' });
-    const celsius = within(group).getByRole('button', { name: '°C' });
-    const fahrenheit = within(group).getByRole('button', { name: '°F' });
+    const celsius = within(group).getByRole('button', { name: 'Celsius' });
+    const fahrenheit = within(group).getByRole('button', { name: 'Fahrenheit' });
 
     expect(celsius).toHaveAttribute('aria-pressed', 'true');
     expect(fahrenheit).toHaveAttribute('aria-pressed', 'false');
@@ -41,8 +41,8 @@ describe('UnitToggle', () => {
     }
 
     render(<Example />);
-    const celsius = screen.getByRole('button', { name: '°C' });
-    const fahrenheit = screen.getByRole('button', { name: '°F' });
+    const celsius = screen.getByRole('button', { name: 'Celsius' });
+    const fahrenheit = screen.getByRole('button', { name: 'Fahrenheit' });
     await user.tab();
     expect(celsius).toHaveFocus();
     await user.tab();

@@ -75,7 +75,7 @@ describe('useWeather', () => {
     });
     expect(result.current.status).toBe('error');
     expect(result.current.data).toBeNull();
-    expect(result.current.error).toBe('Ocorreu um erro inesperado.');
+    expect(result.current.error).toBe('Não foi possível concluir a consulta. Tente novamente.');
 
     await act(async () => {
       await result.current.retry();

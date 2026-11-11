@@ -46,8 +46,22 @@ describe('weatherService', () => {
     expect(requestedUrl.searchParams.get('language')).toBe('pt');
     expect(cities).toHaveLength(4);
     expect(cities[0]).toMatchObject({ admin1: null, country: null });
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ results: [] }) });
     await expect(searchCities('Nenhuma cidade')).resolves.toEqual([]);
+  });
+
+  it.each([
+    "L'Aquila",
+    'Zürich',
+  ])('preserva caracteres especiais em buscas por %s', async (name) => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ results: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(searchCities(` ${name} `)).resolves.toEqual([]);
+    expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get('name')).toBe(name);
   });
 
   it('mapeia clima atual e cinco dias usando as coordenadas selecionadas', async () => {
@@ -112,13 +126,7 @@ describe('weatherService', () => {
           precipitation: null,
         },
         daily: {
-          time: [
-            '2026-11-11',
-            '2026-11-12',
-            '2026-11-13',
-            '2026-11-14',
-            '2026-11-15',
-          ],
+          time: ['2026-11-11', '2026-11-12', '2026-11-14', '2026-11-15'],
         },
       }),
     });
@@ -139,12 +147,15 @@ describe('weatherService', () => {
         { weatherCode: null, minimumC: null, maximumC: null },
       ],
     });
+    const result = await getWeather(city);
+    expect(result.forecast).toHaveLength(5);
+    expect(result.forecast?.[2].date).toBeNull();
   });
 
   it.each([
-    ['current ausente', { timezone: 'UTC', daily: { time: [] } }],
-    ['daily ausente', { timezone: 'UTC', current: {} }],
-  ])('rejeita resposta incompleta: %s', async (_description, payload) => {
+    ['sem dados meteorológicos', {}],
+    ['resposta não estruturada', null],
+  ])('rejeita resposta inválida: %s', async (_description, payload) => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -156,15 +167,44 @@ describe('weatherService', () => {
     await expect(getWeather(city)).rejects.toMatchObject({
       name: 'WeatherServiceError',
       code: 'invalid-response',
-      message: 'A resposta do Open-Meteo está incompleta.',
+      message: 'Não foi possível interpretar os dados recebidos. Tente novamente.',
     } satisfies Partial<WeatherServiceError>);
+  });
+
+  it('mantém o clima atual quando a previsão diária não está disponível', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-11T15:00:00Z'));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          timezone: 'America/Sao_Paulo',
+          utc_offset_seconds: -10_800,
+          current: {
+            time: '2026-11-11T12:00',
+            temperature_2m: 22,
+          },
+          daily: { weather_code: [] },
+        }),
+      }),
+    );
+
+    await expect(getWeather(city)).resolves.toMatchObject({
+      current: { temperatureC: 22 },
+      forecast: null,
+    });
   });
 
   it('classifica respostas HTTP e payload incompleto como erros do serviço', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: null }),
+      });
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(searchCities('Recife')).rejects.toMatchObject({
@@ -174,6 +214,10 @@ describe('weatherService', () => {
     await expect(getWeather(city)).rejects.toMatchObject({
       name: 'WeatherServiceError',
       code: 'invalid-response',
+    } satisfies Partial<WeatherServiceError>);
+    await expect(searchCities('Recife')).rejects.toMatchObject({
+      code: 'invalid-response',
+      message: 'Não foi possível interpretar os dados recebidos. Tente novamente.',
     } satisfies Partial<WeatherServiceError>);
   });
 
@@ -191,11 +235,11 @@ describe('weatherService', () => {
 
     await expect(searchCities('Natal')).rejects.toMatchObject({
       code: 'network',
-      message: 'Falha de rede.',
+      message: 'Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.',
     });
     await expect(searchCities('Natal')).rejects.toMatchObject({
       code: 'invalid-response',
-      message: 'A resposta do Open-Meteo é inválida.',
+      message: 'Não foi possível interpretar os dados recebidos. Tente novamente.',
     });
   });
 
@@ -215,7 +259,8 @@ describe('weatherService', () => {
     const rejection = expect(request).rejects.toMatchObject({
       name: 'WeatherServiceError',
       code: 'timeout',
-      message: 'A requisição demorou demais.',
+      message:
+        'A consulta excedeu o limite de 10 segundos. Verifique sua conexão e tente novamente.',
     });
     await vi.advanceTimersByTimeAsync(10_000);
     await rejection;

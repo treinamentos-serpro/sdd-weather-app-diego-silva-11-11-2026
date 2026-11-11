@@ -24,9 +24,15 @@ async function fetchWithTimeout(url: string): Promise<Response> {
     return await fetch(url, { signal: controller.signal });
   } catch (error) {
     if (isRecord(error) && error.name === 'AbortError') {
-      throw new WeatherServiceError('A requisição demorou demais.', 'timeout');
+      throw new WeatherServiceError(
+        'A consulta excedeu o limite de 10 segundos. Verifique sua conexão e tente novamente.',
+        'timeout',
+      );
     }
-    throw new WeatherServiceError('Falha de rede.', 'network');
+    throw new WeatherServiceError(
+      'Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.',
+      'network',
+    );
   } finally {
     window.clearTimeout(timeout);
   }
@@ -35,13 +41,19 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 async function fetchJson(url: string): Promise<unknown> {
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
-    throw new WeatherServiceError('Não foi possível consultar o Open-Meteo.', 'http');
+    throw new WeatherServiceError(
+      'O serviço meteorológico está indisponível no momento. Tente novamente.',
+      'http',
+    );
   }
 
   try {
     return await response.json();
   } catch {
-    throw new WeatherServiceError('A resposta do Open-Meteo é inválida.', 'invalid-response');
+    throw new WeatherServiceError(
+      'Não foi possível interpretar os dados recebidos. Tente novamente.',
+      'invalid-response',
+    );
   }
 }
 
@@ -73,13 +85,10 @@ function validDate(value: unknown): value is string {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function isConsecutiveDates(dates: string[]): boolean {
-  return dates.every((date, index) => {
-    if (index === 0) return true;
-    const previous = new Date(`${dates[index - 1]}T00:00:00Z`);
-    previous.setUTCDate(previous.getUTCDate() + 1);
-    return previous.toISOString().slice(0, 10) === date;
-  });
+function addDays(date: string, days: number): string {
+  const result = new Date(`${date}T00:00:00Z`);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result.toISOString().slice(0, 10);
 }
 
 function dateInTimezone(timezone: string): string {
@@ -134,11 +143,16 @@ export async function searchCities(name: string): Promise<City[]> {
 
   const payload = await fetchJson(url.toString());
   if (!isRecord(payload)) {
-    throw new WeatherServiceError('A resposta do Open-Meteo é inválida.', 'invalid-response');
+    throw new WeatherServiceError(
+      'Não foi possível interpretar os dados recebidos. Tente novamente.',
+      'invalid-response',
+    );
   }
-  if (payload.results === undefined || payload.results === null) return [];
   if (!Array.isArray(payload.results)) {
-    throw new WeatherServiceError('A resposta do Open-Meteo é inválida.', 'invalid-response');
+    throw new WeatherServiceError(
+      'Não foi possível interpretar os dados recebidos. Tente novamente.',
+      'invalid-response',
+    );
   }
 
   return payload.results
@@ -170,37 +184,48 @@ function mapCurrent(
   };
 }
 
-function mapForecast(
-  daily: Record<string, unknown>,
-  timezone: string | null,
-): ForecastDay[] | null {
+function mapForecast(value: unknown, timezone: string | null): ForecastDay[] | null {
+  if (!timezone || !isRecord(value)) return null;
+  const daily = value;
   const times = daily.time;
-  if (
-    !timezone ||
-    !Array.isArray(times) ||
-    times.length < 5 ||
-    !times.slice(0, 5).every(validDate)
-  ) {
-    return null;
-  }
-
-  const dates = times.slice(0, 5);
-  if (!dates.every((date): date is string => typeof date === 'string')) return null;
-  if (dates[0] !== dateInTimezone(timezone) || !isConsecutiveDates(dates)) return null;
+  if (!Array.isArray(times) || times.length === 0) return null;
+  const firstDate = dateInTimezone(timezone);
+  const expectedDates = Array.from({ length: 5 }, (_, index) => addDays(firstDate, index));
   const weatherCodes = Array.isArray(daily.weather_code) ? daily.weather_code : [];
   const minimums = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min : [];
   const maximums = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max : [];
   const precipitation = Array.isArray(daily.precipitation_probability_max)
     ? daily.precipitation_probability_max
     : [];
-
-  return dates.map((date, index) => ({
-    date,
-    weatherCode: weatherCode(weatherCodes[index]),
-    minimumC: finiteNumber(minimums[index]),
-    maximumC: finiteNumber(maximums[index]),
-    precipitationProbabilityPercent: boundedNumber(precipitation[index], 0, 100),
+  const forecast: ForecastDay[] = expectedDates.map(() => ({
+    date: null,
+    weatherCode: null,
+    minimumC: null,
+    maximumC: null,
+    precipitationProbabilityPercent: null,
   }));
+  const receivedDateIndexes = new Set<number>();
+  let lastDateIndex = -1;
+
+  for (const [sourceIndex, value] of times.slice(0, 5).entries()) {
+    const hasValidDate = validDate(value);
+    const dateIndex = hasValidDate ? expectedDates.indexOf(value) : sourceIndex;
+    if (dateIndex < 0 || dateIndex >= expectedDates.length || receivedDateIndexes.has(dateIndex)) {
+      return null;
+    }
+    if (hasValidDate && dateIndex <= lastDateIndex) return null;
+    if (hasValidDate) lastDateIndex = dateIndex;
+    receivedDateIndexes.add(dateIndex);
+    forecast[dateIndex] = {
+      date: hasValidDate ? value : null,
+      weatherCode: weatherCode(weatherCodes[sourceIndex]),
+      minimumC: finiteNumber(minimums[sourceIndex]),
+      maximumC: finiteNumber(maximums[sourceIndex]),
+      precipitationProbabilityPercent: boundedNumber(precipitation[sourceIndex], 0, 100),
+    };
+  }
+
+  return lastDateIndex < 0 ? null : forecast;
 }
 
 export async function getWeather(city: City): Promise<WeatherData> {
@@ -219,13 +244,11 @@ export async function getWeather(city: City): Promise<WeatherData> {
   }).toString();
 
   const payload = await fetchJson(url.toString());
-  if (
-    !isRecord(payload) ||
-    !isRecord(payload.current) ||
-    !isRecord(payload.daily) ||
-    !Array.isArray(payload.daily.time)
-  ) {
-    throw new WeatherServiceError('A resposta do Open-Meteo está incompleta.', 'invalid-response');
+  if (!isRecord(payload) || (!isRecord(payload.current) && !isRecord(payload.daily))) {
+    throw new WeatherServiceError(
+      'Não foi possível interpretar os dados recebidos. Tente novamente.',
+      'invalid-response',
+    );
   }
 
   let timezone: string | null = null;
@@ -241,7 +264,7 @@ export async function getWeather(city: City): Promise<WeatherData> {
   return {
     city,
     timezone,
-    current: mapCurrent(payload.current, utcOffsetSeconds),
+    current: mapCurrent(isRecord(payload.current) ? payload.current : {}, utcOffsetSeconds),
     forecast: mapForecast(payload.daily, timezone),
   };
 }

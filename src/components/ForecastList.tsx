@@ -14,8 +14,8 @@ export default function ForecastList({ forecast, unit }: ForecastListProps) {
       </h2>
       {forecast && forecast.length > 0 ? (
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {forecast.map((day) => (
-            <ForecastCard key={day.date} day={day} unit={unit} />
+          {forecast.map((day, index) => (
+            <ForecastCard key={day.date ?? `unavailable-${index}`} day={day} unit={unit} />
           ))}
         </ul>
       ) : (

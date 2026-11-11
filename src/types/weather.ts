@@ -20,7 +20,7 @@ export interface CurrentWeather {
 }
 
 export interface ForecastDay {
-  date: string;
+  date: string | null;
   weatherCode: number | null;
   minimumC: number | null;
   maximumC: number | null;

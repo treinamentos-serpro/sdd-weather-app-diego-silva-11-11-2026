@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CurrentWeather from '../../../src/components/CurrentWeather';
 import ForecastList from '../../../src/components/ForecastList';
@@ -78,7 +78,7 @@ describe('apresentação meteorológica', () => {
 
     render(<WeatherWithUnitToggle />);
     expect(screen.getByText('0 °C')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '°F' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fahrenheit' }));
     expect(screen.getByText('32 °F')).toBeInTheDocument();
   });
 
@@ -116,6 +116,27 @@ describe('apresentação meteorológica', () => {
     render(<ForecastList forecast={null} unit="celsius" />);
     expect(screen.getByText('Previsão indisponível.')).toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
+  });
+
+  it('mantém os dias e identifica campos ausentes em uma previsão parcial', () => {
+    const weather = createMockWeatherData();
+    const forecast = weather.forecast?.map((day) => ({
+      ...day,
+      date: null,
+      weatherCode: null,
+      minimumC: null,
+      maximumC: Number.NaN,
+      precipitationProbabilityPercent: null,
+    }));
+
+    render(<ForecastList forecast={forecast ?? null} unit="celsius" />);
+
+    const list = screen.getByRole('list');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(list).getAllByText('Condição indisponível')).toHaveLength(5);
+    expect(within(list).getAllByText('Indisponível')).toHaveLength(15);
+    expect(within(list).getAllByText('Data indisponível')).toHaveLength(5);
+    expect(screen.queryByText(/NaN|undefined/)).not.toBeInTheDocument();
   });
 
   it('deixa de apresentar dados atuais quando a observação vence', () => {

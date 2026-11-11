@@ -28,7 +28,7 @@ describe('contratos meteorológicos', () => {
       pressureHpa: number | null;
     }>();
     expectTypeOf<ForecastDay>().toEqualTypeOf<{
-      date: string;
+      date: string | null;
       weatherCode: number | null;
       minimumC: number | null;
       maximumC: number | null;

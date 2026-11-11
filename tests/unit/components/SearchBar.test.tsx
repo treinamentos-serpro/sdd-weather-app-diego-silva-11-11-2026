@@ -50,6 +50,17 @@ describe('SearchBar', () => {
     expect(onSearch).toHaveBeenCalledExactlyOnceWith('São  Luís');
   });
 
+  it.each(["L'Aquila", 'Zürich'])('preserva caracteres especiais em %s', async (name) => {
+    const user = userEvent.setup();
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} />);
+
+    await user.type(screen.getByRole('searchbox', { name: 'Nome da cidade' }), name);
+    await user.keyboard('{Enter}');
+
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith(name);
+  });
+
   it('impede nova busca enquanto desabilitado, inclusive em submit programático', () => {
     const onSearch = vi.fn();
     const { rerender } = render(<SearchBar onSearch={onSearch} />);

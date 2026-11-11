@@ -19,7 +19,7 @@ type LastOperation = { type: 'search'; query: string } | { type: 'weather'; city
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof WeatherServiceError) return error.message;
-  return 'Ocorreu um erro inesperado.';
+  return 'Não foi possível concluir a consulta. Tente novamente.';
 }
 
 export function useWeather(): UseWeatherResult {
