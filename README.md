@@ -100,6 +100,18 @@ Decisões-chave:
 - **Rede isolada** em `services/` — componentes e hooks não conhecem URLs.
 - Sempre tratar **loading**, **erro** e **vazio**.
 
+Para desenvolver a UI sem acessar a API, importe `mockWeatherData` de
+[`src/mocks/weather.ts`](src/mocks/weather.ts). O objeto segue o contrato
+[`WeatherData`](src/types/weather.ts), com temperaturas em Celsius e cinco
+datas consecutivas no fuso de São Paulo. As datas e o horário da observação são
+calculados quando o módulo é carregado; recarregue a página para atualizá-los.
+Os valores meteorológicos são fictícios.
+
+Execute `pnpm dev` para abrir a aplicação. A busca consulta o geocoding do
+Open-Meteo; após selecionar uma cidade, a previsão atual e diária é carregada.
+O nome informado é enviado ao provedor. Em testes ou no desenvolvimento isolado
+da UI, use `mockWeatherData` sem substituir os serviços em produção.
+
 ---
 
 ## Stack
