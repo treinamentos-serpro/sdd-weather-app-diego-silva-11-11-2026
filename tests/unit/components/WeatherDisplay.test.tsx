@@ -1,8 +1,11 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { useState } from 'react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CurrentWeather from '../../../src/components/CurrentWeather';
 import ForecastList from '../../../src/components/ForecastList';
+import UnitToggle from '../../../src/components/UnitToggle';
 import { createMockWeatherData } from '../../../src/mocks/weather';
+import type { Unit } from '../../../src/types/weather';
 
 describe('apresentação meteorológica', () => {
   afterEach(() => vi.useRealTimers());
@@ -49,6 +52,34 @@ describe('apresentação meteorológica', () => {
     expect(screen.getByText('73 °F')).toBeInTheDocument();
     expect(within(list).getByText('77 °F')).toBeInTheDocument();
     expect(within(list).getByText('80 %')).toBeInTheDocument();
+  });
+
+  it('converte 0 °C para 32 °F ao alternar a unidade pelo controle acessível', () => {
+    const now = new Date('2026-11-11T15:00:00Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    const weather = createMockWeatherData(now);
+    const current = { ...weather.current, temperatureC: 0 };
+
+    function WeatherWithUnitToggle() {
+      const [unit, setUnit] = useState<Unit>('celsius');
+      return (
+        <>
+          <UnitToggle unit={unit} onChange={setUnit} />
+          <CurrentWeather
+            city={weather.city}
+            current={current}
+            unit={unit}
+            timezone={weather.timezone}
+          />
+        </>
+      );
+    }
+
+    render(<WeatherWithUnitToggle />);
+    expect(screen.getByText('0 °C')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '°F' }));
+    expect(screen.getByText('32 °F')).toBeInTheDocument();
   });
 
   it('oculta observações vencidas e trata campos indisponíveis independentemente', () => {

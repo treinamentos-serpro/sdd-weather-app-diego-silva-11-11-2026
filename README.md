@@ -107,10 +107,10 @@ datas consecutivas no fuso de São Paulo. As datas e o horário da observação 
 calculados quando o módulo é carregado; recarregue a página para atualizá-los.
 Os valores meteorológicos são fictícios.
 
-Execute `pnpm dev` para abrir o protótipo navegável. A busca é simulada e aceita
-apenas São Paulo; os botões de demonstração permitem visualizar os estados de
-início, carregamento, vazio, erro e resultado. Nenhum dado é enviado à API.
-O protótipo não substitui a futura integração com os serviços Open-Meteo.
+Execute `pnpm dev` para abrir a aplicação. A busca consulta o geocoding do
+Open-Meteo; após selecionar uma cidade, a previsão atual e diária é carregada.
+O nome informado é enviado ao provedor. Em testes ou no desenvolvimento isolado
+da UI, use `mockWeatherData` sem substituir os serviços em produção.
 
 ---
 
