@@ -144,6 +144,10 @@ interface CurrentWeather {
   weatherCode: number | null;
   /** Horário da observação retornado pelo provedor. */
   observedAt: string | null;
+  humidityPercent: number | null;
+  windSpeedKmh: number | null;
+  precipitationMm: number | null;
+  pressureHpa: number | null;
 }
 
 interface ForecastDay {
@@ -155,6 +159,7 @@ interface ForecastDay {
   minimumC: number | null;
   /** Temperatura máxima diária em Celsius. */
   maximumC: number | null;
+  precipitationProbabilityPercent: number | null;
 }
 
 interface WeatherData {
@@ -180,6 +185,9 @@ interface WeatherData {
   válida, a previsão inteira é `null`.
 - Valores de temperatura são mantidos em Celsius no modelo. Converter apenas na
   apresentação para evitar conversões cumulativas ao alternar unidades.
+- Umidade e probabilidade de precipitação são percentuais entre 0 e 100; vento,
+  precipitação e pressão são valores não negativos. Valores ausentes ou
+  inválidos são `null` e apresentados como indisponíveis independentemente.
 - Código WMO desconhecido permanece indisponível; usar o mapeamento pt-BR
   completo definido na spec, sem esconder temperaturas válidas.
 - `id` e coordenadas vêm do resultado escolhido na geocodificação. Não selecionar
@@ -219,12 +227,14 @@ Usar HTTPS e codificar os valores dos parâmetros com `URLSearchParams`.
   - Normalizar `id`, `name`, `admin1`, `country`, `latitude` e `longitude`;
     região administrativa e país podem estar ausentes.
 - **Forecast —** `GET
-  https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&temperature_unit=celsius&forecast_days=5`
+  https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m,precipitation,pressure_msl&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm&forecast_days=5`
   - `latitude` e `longitude`: coordenadas da localidade escolhida na busca.
   - `current=temperature_2m,weather_code`: solicita temperatura e código WMO
     atuais; `current.time` da resposta fornece o horário da observação.
+    Os demais campos atuais fornecem umidade, vento, precipitação e pressão.
   - `daily=weather_code,temperature_2m_max,temperature_2m_min`: solicita código
     WMO e temperaturas mínima/máxima para cada dia.
+    `precipitation_probability_max` fornece a probabilidade máxima diária.
   - `timezone=auto`: solicita o fuso horário correspondente às coordenadas para
     que as datas diárias sejam locais.
   - `temperature_unit=celsius` e `forecast_days=5`: mantêm os valores-fonte em

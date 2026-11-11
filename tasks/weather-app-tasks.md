@@ -131,6 +131,8 @@ incerteza e abrangência da tarefa.
   - Temperaturas não numéricas/não finitas, códigos e timestamps inválidos e
     campos ausentes são normalizados como indisponíveis sem invalidar campos
     independentes válidos.
+  - Normaliza umidade, vento, precipitação, pressão e probabilidade máxima
+    diária de precipitação conforme os intervalos do plano.
   - Com fuso e cinco datas diárias válidas retorna exatamente cinco dias locais
     consecutivos; sem fuso ou sem previsão diária válida retorna `forecast:
     null`.
@@ -245,7 +247,7 @@ incerteza e abrangência da tarefa.
 - **Tamanho:** M
 
 - **Descrição:** Criar componente para cidade, temperatura, condição, horário e
-  atribuição do provedor.
+  atribuição do provedor, além de umidade, vento, precipitação e pressão.
 - **Critérios de aceite:**
   - Com uma fixture de cidade e observação válida, renderiza nome da cidade,
     temperatura em °C, descrição WMO, horário local em 24 horas e atribuição
@@ -255,6 +257,7 @@ incerteza e abrangência da tarefa.
     ausentes ou códigos desconhecidos também exibem indisponibilidade.
   - Ao receber dados para outra cidade, não exibe cidade ou valores da fixture
     anterior.
+  - Métricas ausentes ou inválidas são identificadas como indisponíveis.
 - **Dependências:** T-01, T-02, T-03, T-10, T-15.
 - **Arquivos prováveis:** `src/components/CurrentWeather.tsx`
 - **Tipo:** UI
@@ -266,8 +269,8 @@ incerteza e abrangência da tarefa.
 - **Prioridade:** P0
 - **Tamanho:** M
 
-- **Descrição:** Criar cartões diários para datas locais, condições e
-  temperaturas mínima e máxima.
+- **Descrição:** Criar cartões diários para datas locais, condições,
+  temperaturas mínima e máxima e probabilidade de precipitação.
 - **Critérios de aceite:**
   - Para fixture válida, renderiza exatamente cinco cartões em ordem cronológica
     com as datas fornecidas, condição e mínima/máxima; datas são as do fuso
@@ -304,6 +307,14 @@ incerteza e abrangência da tarefa.
 - **Rastreabilidade:** CA-04.1 a CA-04.5, RNF-05.
 
 ## Entrega 6 — Integração da aplicação
+
+### Protótipo navegável com dados simulados
+
+- Montar a tela com os componentes, cinco dias fictícios, controle de unidade e
+  estados demonstráveis de busca. Identificar claramente que não há chamada à
+  API e que os valores não são observações reais.
+- Preservar a integração real e a seleção explícita de cidade para T-36/T-20;
+  o protótipo não conclui essas tarefas.
 
 ### T-36 — Integrar a primeira fatia vertical de busca e clima atual
 

@@ -33,12 +33,16 @@ local, funcionamento offline ou localização automática.
   pertencem. Exibir temperatura atual em Celsius ou Fahrenheit e uma descrição
   textual da condição meteorológica em pt-BR, o horário local da observação e
   atribuição ao Open-Meteo. Não exibir como atual uma observação com mais de
-  duas horas de idade, sem horário válido ou com horário futuro.
+  duas horas de idade, sem horário válido ou com horário futuro. Exibir também
+  umidade relativa (%), velocidade do vento (km/h), precipitação (mm) e pressão
+  atmosférica (hPa), identificando campos ausentes como indisponíveis.
 - **RF-03 — Consultar previsão de cinco dias:** apresentar a previsão da cidade
   selecionada em granularidade diária: data local, condição textual e
   temperaturas mínima e máxima para hoje e os quatro dias seguintes, conforme
   as datas fornecidas pelo Open-Meteo no fuso horário da cidade, com atribuição
-  ao provedor. Localidades sem fuso horário retornado não têm previsão exibida.
+  ao provedor. Exibir a probabilidade máxima diária de precipitação em percentual,
+  ou indisponibilidade quando ausente. Localidades sem fuso horário retornado não
+  têm previsão exibida.
 - **RF-04 — Alternar unidade de temperatura:** permitir alternar entre Celsius
   e Fahrenheit. A unidade inicial deve ser Celsius, e a unidade escolhida deve
   ser aplicada a todas as temperaturas atuais e previstas. Converter usando
@@ -173,6 +177,11 @@ Cada critério usa **Given/When/Then** e está vinculado ao requisito funcional.
   - **When:** a resposta é processada.
   - **Then:** a temperatura e a condição não são exibidas como atuais e a
     interface informa que os dados atuais estão desatualizados ou indisponíveis.
+- **CA-02.4**
+  - **Given:** uma observação atual válida contém métricas adicionais.
+  - **When:** o clima atual é exibido.
+  - **Then:** umidade, vento, precipitação e pressão são mostrados com suas
+    unidades; cada valor ausente ou inválido é identificado como indisponível.
 
 ### US-03 — Planejar os próximos dias (RF-03)
 
@@ -181,8 +190,9 @@ Cada critério usa **Given/When/Then** e está vinculado ao requisito funcional.
     cinco datas consecutivas a partir da data local da cidade.
   - **When:** a consulta termina.
   - **Then:** a interface exibe cinco cartões, um por data, em ordem cronológica,
-    com data, descrição de condição conforme a tabela WMO, mínima e máxima em
-    cada cartão, e atribui os dados ao Open-Meteo.
+    com data, descrição de condição conforme a tabela WMO, mínima, máxima e
+    probabilidade máxima de precipitação em cada cartão, e atribui os dados ao
+    Open-Meteo.
 - **CA-03.2**
   - **Given:** o fuso horário retornado para a cidade difere do fuso do
     dispositivo.
@@ -397,7 +407,7 @@ Cada critério usa **Given/When/Then** e está vinculado ao requisito funcional.
 - Alertas meteorológicos, notificações ou recomendações personalizadas.
 - Funcionamento offline ou acesso a dados meteorológicos em cache.
 - Métricas diferentes das definidas nos RF-02 e RF-03, incluindo sensação
-  térmica, precipitação, vento, umidade e índice UV.
+  térmica e índice UV.
 - Suporte a idiomas além de pt-BR nesta especificação inicial.
 
 ## Open Questions
